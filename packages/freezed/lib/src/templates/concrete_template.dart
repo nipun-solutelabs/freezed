@@ -140,12 +140,41 @@ ${copyWith.abstractCopyWithGetter}
 
   String get _properties {
     return constructor.impliedProperties.map((p) {
-      var res = '@override $p';
-      if (p.defaultValueSource != null && !p.hasJsonKey) {
-        res = '@JsonKey(defaultValue: ${p.defaultValueSource}) $res';
+      var pString = '$p';
+      //var res = '@override $p';
+      if (p.defaultValueSource != null) {
+        if (!p.hasJsonKey) {
+          pString = '@JsonKey(defaultValue: ${p.defaultValueSource}) $p';
+        } else {
+          //add default value in json annotation of property if it not exists already
+          if (!_doesJsonAnnotationIncludesDefaultValue(pString)) {
+            pString = _addDefaultValueKeyInJsonAnnotation(
+                str: pString, defaultValue: p.defaultValueSource);
+          }
+        }
       }
+      var res = '@override $pString';
+      if (p.defaultValueSource != null && !p.hasJsonKey) {}
       return res;
     }).join();
+  }
+
+  bool _doesJsonAnnotationIncludesDefaultValue(String s) {
+    final pattern = r'@JsonKey\(.*defaultValue:.*\)';
+
+    final exp = RegExp(pattern, multiLine: true);
+
+    return exp.hasMatch(s);
+  }
+
+  String _addDefaultValueKeyInJsonAnnotation(
+      {String str, String defaultValue}) {
+    final pattern = r'@JsonKey\((.*)\)';
+
+    final exp = RegExp(pattern, multiLine: true);
+
+    return str.replaceFirstMapped(
+        exp, (m) => '@JsonKey(defaultValue: $defaultValue, ${m.group(1)})');
   }
 
   String get _isConst {
